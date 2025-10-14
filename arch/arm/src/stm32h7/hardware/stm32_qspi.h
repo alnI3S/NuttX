@@ -77,6 +77,7 @@
 
 #define QSPI_CR_EN                 (1 << 0)   /* Bit 0:  QSPI Enable */
 #define QSPI_CR_ABORT              (1 << 1)   /* Bit 1:  Abort request */
+#define QSPI_CR_DMAEN              (1 << 2)   /* Bit 2:  DMA enable */
 #define QSPI_CR_TCEN               (1 << 3)   /* Bit 3:  Timeout counter enable */
 #define QSPI_CR_SSHIFT             (1 << 4)   /* Bit 4:  Sample shift */
 #define QSPI_CR_DFM                (1 << 6)   /* Bit 6:  DFM: Dual-flash mode */

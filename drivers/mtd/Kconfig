@@ -137,7 +137,7 @@ config MTD_PROGMEM
 		interfaces must be exported by chip-specific logic.
 
 if MTD_PROGMEM
-		
+
 endif #MTD_PROGMEM
 
 config MTD_CONFIG
@@ -683,6 +683,31 @@ config W25QXXXJV_SECTOR512
 
 endif # MTD_W25QXXXJV
 
+config MTD_W25N01GV
+    bool "QuadSPI-based Winbond W25N01GV Nand FLASH"
+    default n
+    ---help---
+        Support the W25N01GV chip
+
+if MTD_W25N01GV
+
+config W25N01GV_QSPIMODE
+    int "W25N01GV QuadSPI Mode"
+    default 0
+    ---help---
+        This device can operate in SPI mode 0 or 3.
+
+config W25N01GV_QSPI_FREQUENCY
+    int "W25N01GV QuadSPI Frequency"
+    default 104000000
+    ---help---
+        Per data sheet:
+		– 104MHz Single, Dual/Quad SPI clocks
+		– 208/416MHz equivalent Dual/Quad SPI
+		– 56MB/S continuous data transfer rate
+
+endif # MTD_W25N01GV
+
 config MTD_MX25RXX
 	bool "QuadSPI-based Macronix MX25RXX family FLASH"
 	default n
@@ -719,11 +744,11 @@ config MX25RXX_SECTOR512
 config MX25RXX_PAGE128
 	bool "128 byte size pages"
 	default n
-	
+
 config MX25RXX_LXX
 	bool "Run MX25RXX driver in MX25LXX mode"
 	default n
-	
+
 endif # MTD_MX25RXX
 
 config MTD_SMART
@@ -915,18 +940,18 @@ config RAMTRON_CHUNKING
 	---help---
 		Some Re-RAMs like MB85AS4MT have write buffer size limitation and
 		require smaller, "chunked" writes.
-		
+
 config RAMTRON_EMULATE_SECTOR_SHIFT
 	int "RAMTRON emulated sector size"
 	default 9
 	---help---
 		RAMTRON devices do not have pages and sectors.
 		For purpose of the VFAT file system, we emulate them.
-		
+
 		Specify sector shift value to determine emulated sector size.
 		The relationship between sector shift value and emulated sector size is described
 		in the formula: RAMTRON_EMULATE_SECTOR_SIZE = (1 << RAMTRON_EMULATE_SECTOR_SHIFT)
-		
+
 		sector shift value	: sector size in bytes
 					0		: 1
 					1		: 2
@@ -938,18 +963,18 @@ config RAMTRON_EMULATE_SECTOR_SHIFT
 					7		: 128
 					8		: 256
 					9		: 512
-		
+
 config RAMTRON_EMULATE_PAGE_SHIFT
 	int "RAMTRON emulated page size"
 	default 9
 	---help---
 		RAMTRON devices do not have pages and sectors.
 		For purpose of the VFAT file system, we emulate them.
-		
+
 		Specify page shift value to determine emulated page size.
 		The relationship between sector shift value and emulated sector size is described
 		in the formula: RAMTRON_EMULATE_PAGE_SIZE = (1 << RAMTRON_EMULATE_PAGE_SHIFT)
-		
+
 		page shift value	: page size in bytes
 					0		: 1
 					1		: 2

@@ -1516,8 +1516,19 @@ static int qspi_memory_dma(struct stm32h7_qspidev_s *priv,
                   DMA_SCR_PSIZE_8BITS | DMA_SCR_MINC | DMA_SCR_DIR_P2M);
     }
 
-  stm32_dmasetup(priv->dmach, qspi_regaddr(priv, STM32_QUADSPI_DR_OFFSET),
-                 (uint32_t)meminfo->buffer, meminfo->buflen, dmaflags);
+    stm32_dmacfg_t cfg;
+
+    cfg.paddr = qspi_regaddr(priv, STM32_QUADSPI_DR_OFFSET);
+    cfg.maddr = (uint32_t)meminfo->buffer;
+    cfg.cfg1 = dmaflags;
+    cfg.cfg2 = 0;
+    cfg.ndata = meminfo->buflen;
+
+    stm32_dmasetup(priv->dmach, &cfg);
+
+
+//   stm32_dmasetup(priv->dmach, qspi_regaddr(priv, STM32_QUADSPI_DR_OFFSET),
+//                  (uint32_t)meminfo->buffer, meminfo->buflen, dmaflags);
 
   qspi_dma_sample(priv, DMA_AFTER_SETUP);
 
@@ -1854,7 +1865,7 @@ static uint32_t qspi_setfrequency(struct qspi_dev_s *dev, uint32_t frequency)
       return 0;
     }
 
-  spiinfo("frequency=%d\n", frequency);
+  spiinfo("frequency=%" PRIu32 "\n", frequency);
   DEBUGASSERT(priv);
 
   /* Wait till BUSY flag reset */
@@ -1908,14 +1919,14 @@ static uint32_t qspi_setfrequency(struct qspi_dev_s *dev, uint32_t frequency)
   /* Calculate the new actual frequency */
 
   actual = QSPI_CLK_FREQUENCY / prescaler;
-  spiinfo("prescaler=%d actual=%d\n", prescaler, actual);
+  spiinfo("prescaler=%" PRIu32 " actual=%" PRIu32 "\n", prescaler, actual);
 
   /* Save the frequency setting */
 
   priv->frequency = frequency;
   priv->actual    = actual;
 
-  spiinfo("Frequency %d->%d\n", frequency, actual);
+  spiinfo("Frequency %" PRIu32 "->%" PRIu32 "\n", frequency, actual);
   return actual;
 }
 
@@ -1986,7 +1997,7 @@ static void qspi_setmode(struct qspi_dev_s *dev, enum qspi_mode_e mode)
         }
 
       qspi_putreg(priv, regval, STM32_QUADSPI_DCR_OFFSET);
-      spiinfo("DCR=%08x\n", regval);
+      spiinfo("DCR=%08" PRIx32 "\n", regval);
 
       /* Save the mode so that subsequent re-configurations will be faster */
 
