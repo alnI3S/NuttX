@@ -590,6 +590,21 @@ FAR struct mtd_dev_s *n25qxxx_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
 /****************************************************************************
+ * Name: w25n01_initialize
+ *
+ * Description:
+ *   Initialize the W25N01 NAND flash device with standard SPI mode.
+ *
+ * Input Parameters:
+ *   spi   - SPI device instance
+  *
+ * Returned Value:
+ *   MTD device instance or NULL on error.
+ *
+ ****************************************************************************/
+ FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *spi);
+
+/****************************************************************************
  * Name: w25qxxxjv_initialize
  *
  * Description:
