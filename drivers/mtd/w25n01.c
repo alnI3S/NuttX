@@ -422,7 +422,7 @@ static int w25n01_page_write(FAR struct w25n01_dev_s *priv, uint16_t page,
 /* Helpers */
 static void w25n01_byteread(FAR struct w25n01_dev_s *priv, FAR uint8_t *buffer,
 							uint16_t address, size_t nbytes);
-#if defined(CONNFIG_MTD_BYTE_WRITE) && !defined(CONFIG_W25N01_READONLY)
+#if defined(CONFIG_MTD_BYTE_WRITE) && !defined(CONFIG_W25N01_READONLY)
 static inline void w25n01_bytewrite(FAR struct w25n01_dev_s *priv,
 							FAR const uint8_t *buffer,
 							off_t offset, size_t nbytes);
