@@ -216,7 +216,7 @@
  * Note: this register is read-only
  * Bit  |  7  |   6   |   5   |   4   |   3    |    2   |  1  |   0  |
  * 	--------------------------------------------------------------
- *      | (R) | LUT-F | ECC-1 | ECC-0 | P-FAIL | E-FAIL | WEL | BUSY |
+ *      | (R) | LUT-F | ECC-1 | ECC-0 | P-FAIL | E-FAIL | WEL | BUSY |
 */
 #define STATUS3_BUSY_MASK     		(1 << 0) /* Bit 0: Device ready/busy status  */
 #define STATUS3_WEL_MASK     		(1 << 1) /* Bit 1: Write enable latch status */
@@ -367,7 +367,7 @@ static int w25n01_wait_ready(FAR struct w25n01_dev_s *priv,
 static void w25n01_reset(FAR struct w25n01_dev_s *priv);
 
 static inline int w25n01_readid(FAR struct w25n01_dev_s *priv);
-static uint8_t w25n01_read_status(FAR struct w25n01gv_dev_s *priv,
+static uint8_t w25n01_read_status(FAR struct w25n01_dev_s *priv,
 									uint8_t status_addr);
 static inline void w25n01_write_enable(FAR struct w25n01_dev_s *priv);
 static inline void w25n01_write_disable(FAR struct w25n01_dev_s *priv);
@@ -384,25 +384,25 @@ static uint16_t w25n01_last_ecc_failure_page(FAR struct w25n01_dev_s *priv);
 /* Program (Write): Page/Block operations */
 static int w25n01_block_erase(FAR struct w25n01_dev_s *priv, uint16_t block);
 
-static int w25n01_program_data_load(FAR struct w25n01_dev_s *priv,
+static void w25n01_program_data_load(FAR struct w25n01_dev_s *priv,
 									uint16_t column_addr,
 									FAR const uint8_t *buffer, size_t buflen,
-									bool random=true);
-static int w25n01_program_execute(FAR struct w25n01_dev_s *priv, uint16_t page);
+									bool random);
+static void w25n01_program_execute(FAR struct w25n01_dev_s *priv, uint16_t page);
 
 /* Read */
-static int w25n01_page_data_read(FAR struct w25n01_dev_s *priv, uint16_t page);
+static void w25n01_page_data_read(FAR struct w25n01_dev_s *priv, uint16_t page);
 
-static int w25n01_read_data(FAR struct w25n01_dev_s *priv, uint16_t column_addr,
+static void w25n01_read_data(FAR struct w25n01_dev_s *priv, uint16_t column_addr,
 							FAR uint8_t *buffer, size_t buflen);
-static int w25n01_fast_read(FAR struct w25n01_dev_s *priv, uint16_t column_addr,
+static void w25n01_fast_read(FAR struct w25n01_dev_s *priv, uint16_t column_addr,
 							FAR uint8_t *buffer, size_t buflen);
-static int w25n01_fast_read_4b(FAR struct w25n01_dev_s *priv, uint16_t column_addr,
+static void w25n01_fast_read_4b(FAR struct w25n01_dev_s *priv, uint16_t column_addr,
 							FAR uint8_t *buffer, size_t buflen);
 
 /* Helpers */
 static int w25n01_scan_bad_blocks(FAR struct w25n01_dev_s *priv);
-static int w25n01_is_bad_block(FAR struct w25n01_dev_s *priv, uint16_t block);
+static bool w25n01_is_bad_block(FAR struct w25n01_dev_s *priv, uint16_t block);
 static int w25n01_mark_bad_block(FAR struct w25n01_dev_s *priv, uint16_t block);
 
 static int w25n01_chip_erase(FAR struct w25n01_dev_s *priv);
@@ -416,7 +416,7 @@ static int w25n01_page_read(FAR struct w25n01_dev_s *priv, uint16_t page,
 #ifndef CONFIG_W25N01_READONLY
 static int w25n01_page_write(FAR struct w25n01_dev_s *priv, uint16_t page,
                             FAR const uint8_t *data, size_t datalen,
-							bool random=true);
+							bool random);
 #endif
 
 /* Helpers */
@@ -425,7 +425,7 @@ static void w25n01_byteread(FAR struct w25n01_dev_s *priv, FAR uint8_t *buffer,
 #if defined(CONFIG_MTD_BYTE_WRITE) && !defined(CONFIG_W25N01_READONLY)
 static inline void w25n01_bytewrite(FAR struct w25n01_dev_s *priv,
 							FAR const uint8_t *buffer,
-							off_t offset, size_t nbytes);
+							uint32_t offset, size_t nbytes);
 #endif
 
 /* MTD driver methods */
@@ -638,7 +638,7 @@ static inline int w25n01_readid(FAR struct w25n01_dev_s *priv)
 /****************************************************************************
  * Name: w25n01_read_status
  ****************************************************************************/
-static uint8_t w25n01_read_status(FAR struct w25n01gv_dev_s *priv,
+static uint8_t w25n01_read_status(FAR struct w25n01_dev_s *priv,
 									uint8_t status_addr)
 {
 	uint8_t status;
@@ -700,7 +700,7 @@ static void w25n01_unprotect(FAR struct w25n01_dev_s *priv)
 	w25n01_lock(priv->spi);
 
 	/* Wait for any preceding write or erase operation to complete. */
-	waitwritecomplete(priv);
+	w25n01_waitwritecomplete(priv);
 
 	/* Send "Write enable" */
 	w25n01_write_enable(priv);
@@ -744,7 +744,7 @@ static void w25n01_unprotect(FAR struct w25n01_dev_s *priv)
  ****************************************************************************/
 static int w25n01_read_bbm_lut(FAR struct w25n01_dev_s *priv)
 {
-	uint8_t lut_entry[W25N01_BBM_MAX_ENTRIES * 4];	/* 4 bytes per entry */
+	uint8_t lut_entry[W25N01_BBM_MAX_ENTRIES * 4];	/* 4 bytes per entry */
 	uint16_t lba, pba;
 	/* Clear current list */
 	priv->bb_count = 0;
@@ -760,7 +760,7 @@ static int w25n01_read_bbm_lut(FAR struct w25n01_dev_s *priv)
 	/* Send dummy byte */
 	SPI_SEND(priv->spi, W25N01_DUMMY);
 	/* Receive 4 bytes: 2 bytes LBA + 2 bytes PBA */
-	SPI_RECVBLOCK(priv->spi, lut_entry, W25N01_BBM_MAX_ENTRIES * 4);
+	SPI_RECVBLOCK(priv->spi, lut_entry, W25N01_BBM_MAX_ENTRIES * 4);
 	/* Deselect the FLASH */
 	SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
 
@@ -843,7 +843,7 @@ static int w25n01_bbm(FAR struct w25n01_dev_s *priv, uint16_t lba, uint16_t *pba
 	{
 		ferr("ERROR: No good blocks available for remapping\n");
 		*pba = W25N01_INVALID_BLOCK;
-		return;
+		return -ENOSPC;
 	}
 	/* Issue Swap Blocks command */
 	finfo("Swapping bad block %d with good block %d\n", lba, good_block);
@@ -865,10 +865,11 @@ static int w25n01_bbm(FAR struct w25n01_dev_s *priv, uint16_t lba, uint16_t *pba
 	if (ret < 0)
 	{
 		*pba = W25N01_INVALID_BLOCK;
-		return;
+		return ret;
 	}
 	/* Return the physical block address */
 	*pba = good_block;
+	return OK;
 }
 
 /****************************************************************************
@@ -1056,7 +1057,7 @@ static void w25n01_program_data_load(FAR struct w25n01_dev_s *priv,
  ****************************************************************************/
 static void w25n01_program_execute(FAR struct w25n01_dev_s *priv, uint16_t page)
 {
-	finfo("page_addr: %04x\n", page_addr);
+	finfo("page_addr: %04x\n", page);
 
 	/* Send "Program Execute" command p. 38 */
 	SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
@@ -1169,8 +1170,6 @@ static void w25n01_read_data(FAR struct w25n01_dev_s *priv, uint16_t column_addr
 
 	/* complete the instruction */
 	SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
-
-	return OK;
 }
 
 /****************************************************************************
@@ -1210,8 +1209,6 @@ static void w25n01_fast_read(FAR struct w25n01_dev_s *priv, uint16_t column_addr
 
 	/* complete the instruction */
 	SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
-
-	return OK;
 }
 
 /****************************************************************************
@@ -1252,8 +1249,6 @@ static void w25n01_fast_read_4b(FAR struct w25n01_dev_s *priv, uint16_t column_a
 
 	/* complete the instruction */
 	SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
-
-	return OK;
 }
 
 /****************************************************************************
@@ -1310,7 +1305,7 @@ static int w25n01_scan_bad_blocks(FAR struct w25n01_dev_s *priv)
 		/* Read Page 0 Column 0 */
 		uint16_t page = block * W25N01_PAGES_PER_BLOCK;
 
-		ret = w25n01_page_read(priv, page, 0, marker, 1);
+		ret = w25n01_page_read(priv, page, 0, &marker, 1, 0);
 		if (ret < 0)
 		{
 			/* Read error, mark as bad */
@@ -1350,11 +1345,11 @@ static int w25n01_scan_bad_blocks(FAR struct w25n01_dev_s *priv)
 /****************************************************************************
  * Name: w25n01_is_bad_block
  ****************************************************************************/
-static int w25n01_is_bad_block(FAR struct w25n01_dev_s *priv, off_t block)
+static bool w25n01_is_bad_block(FAR struct w25n01_dev_s *priv, uint16_t block)
 {
 	if (!priv->bbm_table || block >= W25N01_BLOCKS)
 	{
-		return 1;  /* Consider out of range blocks as bad */
+		return true;  /* Consider out of range blocks as bad */
 	}
 
 	return (priv->bbm_table[block] == W25N01_FACTORY_BAD_BLOCK);
@@ -1363,7 +1358,7 @@ static int w25n01_is_bad_block(FAR struct w25n01_dev_s *priv, off_t block)
 /****************************************************************************
  * Name: w25n01_mark_bad_block
  ****************************************************************************/
-static int w25n01_mark_bad_block(FAR struct w25n01_dev_s *priv, off_t block)
+static int w25n01_mark_bad_block(FAR struct w25n01_dev_s *priv, uint16_t block)
 {
 	uint8_t marker = W25N01_FACTORY_BAD_BLOCK;
 	int ret;
@@ -1385,7 +1380,7 @@ static int w25n01_mark_bad_block(FAR struct w25n01_dev_s *priv, off_t block)
 	off_t page = block * W25N01_PAGES_PER_BLOCK;
 
 	/* Write to first page's OOB area */
-	ret = w25n01_page_write(dev, page, &marker, 1);
+	ret = w25n01_page_write(priv, page, &marker, 1, true);
 	if (ret < 0)
 	{
 		ferr("ERROR: Failed to write bad block marker for block %ld\n", (long)block);
@@ -1429,7 +1424,7 @@ static inline int w25n01_chip_erase(FAR struct w25n01_dev_s *priv)
 static bool w25n01_is_erased(struct w25n01_dev_s *priv, uint16_t page,
 							size_t nbytes)
 {
-	DEBUGASSERT((address & W25N01_PAGE_MASK) == 0);
+	DEBUGASSERT((page & W25N01_PAGE_MASK) == 0);
 	DEBUGASSERT((nbytes & W25N01_PAGE_MASK) == 0);
 
 	uint16_t npages = nbytes >> W25N01_PAGE_SHIFT;
@@ -1448,7 +1443,7 @@ static bool w25n01_is_erased(struct w25n01_dev_s *priv, uint16_t page,
 	while (npages--)
 	{
 		/* Check if all bytes of page is in erased state.*/
-		w25n01_page_read(priv, page, 0, buf, W25N01_PAGE_SIZE);
+		w25n01_page_read(priv, page, 0, buf, W25N01_PAGE_SIZE, 0);
 
 		for (i = 0; i < W25N01_PAGE_SIZE; i++)
 		{
@@ -1483,14 +1478,17 @@ static bool w25n01_is_erased(struct w25n01_dev_s *priv, uint16_t page,
  * Needs:
  * - page number (address) 0..65,535
  * - if ECC enables (default) buffer size = aligned to page size (n * 2,048 bytes)
+ * -mode:
+ *   0 = standard Read Data (0x03)
+ *   1 = Fast Read (0x0B)
+ *   2 = Fast Read with 4-Byte Address (0x0C)
  ****************************************************************************/
 static int w25n01_page_read(FAR struct w25n01_dev_s *priv, uint16_t page,
 						   uint16_t column_addr, FAR uint8_t *buffer,
-						   size_t buflen, uint8_t mode=0)
+						   size_t buflen, uint8_t mode)
 {
 	int ret;
 	off_t block;
-	uint8_t status;
 
 	DEBUGASSERT(buflen % (W25N01_PAGE_MASK) == 0); // n*2048
 
@@ -1616,7 +1614,7 @@ static int w25n01_page_write(FAR struct w25n01_dev_s *priv, uint16_t page,
 	else
 	{
 		// SPI_SEND(priv->spi, W25N01_PROGRAM_DATA_LOAD);
-		w25n01_program_data_load(priv, column_addr, data, datalen);
+		w25n01_program_data_load(priv, column_addr, data, datalen, true);
 	}
 
 	/* Send "Program Execute" command p. 38 */
@@ -1632,7 +1630,7 @@ static int w25n01_page_write(FAR struct w25n01_dev_s *priv, uint16_t page,
  * - byte address
  ****************************************************************************/
 static void w25n01_byteread(FAR struct w25n01_dev_s *priv, FAR uint8_t *buffer,
-							uint32_t address, size_t nbytes)
+							uint16_t address, size_t nbytes)
 {
 	int ret;
 	off_t block;
@@ -1667,7 +1665,7 @@ static void w25n01_byteread(FAR struct w25n01_dev_s *priv, FAR uint8_t *buffer,
 	w25n01_read_data(priv, column_addr, buffer, nbytes);
 }
 
-#if defined(CONFIG_MTD_BYTE_WRITE) && !defined(CONFIG_W25N01_READONLY
+#if defined(CONFIG_MTD_BYTE_WRITE) && !defined(CONFIG_W25N01_READONLY)
 /****************************************************************************
  * Name: w25n01_bytewrite (deprecated) use instead w25n01_page_write
  *
@@ -1795,7 +1793,7 @@ static ssize_t w25n01_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
 
 	w25n01_page_write(priv, buffer,
 					  startblock << W25N01_BLOCK2PAGE_SHIFT,
-					  nblocks << W25N01_BLOCK2PAGE_SHIFT);
+					  nblocks << W25N01_BLOCK2PAGE_SHIFT, true);
 	w25n01_unlock(priv->spi);
 
 	return nblocks;

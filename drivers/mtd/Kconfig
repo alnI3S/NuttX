@@ -683,25 +683,25 @@ config W25QXXXJV_SECTOR512
 
 endif # MTD_W25QXXXJV
 
-config W25N01
-    bool "Winbond W25N01 Nand FLASH in standard SPI support"
-    default n
-    select SPI
-    ---help---
-        Enable support for the Winbond W25N01 1Gb NAND flash memory in 
-        standard SPI mode.
+config MTD_W25N01
+	bool "Winbond W25N01 Nand FLASH in standard SPI support"
+	default n
+	select SPI
+	---help---
+		Enable support for the Winbond W25N01 1Gb NAND flash memory in
+		standard SPI mode.
 
-        This driver provides:
-        - Full read/write/erase operations
-        - Bad block management
-        - hardware ECC support by default
-        - SPI interface support only
+		This driver provides:
+		- Full read/write/erase operations
+		- Bad block management
+		- hardware ECC support by default
+		- SPI interface support only
 
-        The W25N01 is a 1Gb NAND flash organized as:
-        - 2048 blocks
-        - 64 pages per block
-        - 2048 bytes per page
-        - 64 bytes Spare per page
+		The W25N01 is a 1Gb NAND flash organized as:
+		- 2048 blocks
+		- 64 pages per block
+		- 2048 bytes per page
+		- 64 bytes Spare per page
 
 if MTD_W25N01
 
@@ -715,14 +715,14 @@ config W25N01_SPI_FREQUENCY
     default 96000000
     ---help---
         Set the SPI clock frequency for W25N01 accesses to 96 MHz.
-        Max frequency is 104 MHz (datasheet) but never set SPI frequency higher 
-        than the SPI kernel clock source. In board.h configuration for SPI123 
+        Max frequency is 104 MHz (datasheet) but never set SPI frequency higher
+        than the SPI kernel clock source. In board.h configuration for SPI123
         clocking (i.e. PLL2P = 96 MHz).
 config W25N01_READONLY
     bool "W25N01 Read-Only"
     default n
     ---help---
-        Build the driver in read-only mode. Write and erase operations will 
+        Build the driver in read-only mode. Write and erase operations will
         return errors.
 
 endif # MTD_W25N01
