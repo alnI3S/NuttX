@@ -521,6 +521,34 @@ FAR struct mtd_dev_s *sst39vf_initialize(void);
 FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
 
 /****************************************************************************
+ * Name: w25n01_initialize
+ *
+ * Description:
+ *   Initialize the W25N01 NAND flash device with standard SPI mode.
+ *
+ * Input Parameters:
+ *   spi   - SPI device instance
+  *
+ * Returned Value:
+ *   MTD device instance or NULL on error.
+ *
+ ****************************************************************************/
+ FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
+                                           uint16_t spi_devid);
+
+/****************************************************************************
+ * Name: w25n01gv_initialize
+ *
+ * Description:
+ *   Create an initialized MTD device instance for the QuadSPI-based
+ *   W25N01GV Nand FLASH part from Winbond.
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *w25n01gv_initialize(FAR struct qspi_dev_s *qspi,
+                                         bool unprotect);
+
+/****************************************************************************
  * Name: gd25_initialize
  *
  * Description:
@@ -589,20 +617,6 @@ FAR struct mtd_dev_s *mx25rxx_initialize(FAR struct qspi_dev_s *qspi,
 FAR struct mtd_dev_s *n25qxxx_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
-/****************************************************************************
- * Name: w25n01_initialize
- *
- * Description:
- *   Initialize the W25N01 NAND flash device with standard SPI mode.
- *
- * Input Parameters:
- *   spi   - SPI device instance
-  *
- * Returned Value:
- *   MTD device instance or NULL on error.
- *
- ****************************************************************************/
- FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *spi);
 
 /****************************************************************************
  * Name: w25qxxxjv_initialize
@@ -614,18 +628,6 @@ FAR struct mtd_dev_s *n25qxxx_initialize(FAR struct qspi_dev_s *qspi,
  ****************************************************************************/
 
 FAR struct mtd_dev_s *w25qxxxjv_initialize(FAR struct qspi_dev_s *qspi,
-                                         bool unprotect);
-
-/****************************************************************************
- * Name: w25n01gv_initialize
- *
- * Description:
- *   Create an initialized MTD device instance for the QuadSPI-based
- *   W25N01GV Nand FLASH part from Winbond.
- *
- ****************************************************************************/
-
-FAR struct mtd_dev_s *w25n01gv_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
 /****************************************************************************
