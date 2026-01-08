@@ -1783,16 +1783,15 @@ static ssize_t w25n01_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
 	FAR struct w25n01_dev_s *priv = (FAR struct w25n01_dev_s *)dev;
 
 	finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
-	int page;
-	int block;
-	int pagesperblock = W25N01_PAGES_PER_BLOCK;
-	int ret;
+	int page = startblock << W25N01_BLOCK2PAGE_SHIFT;
+	// int block;
+	// int pagesperblock = W25N01_PAGES_PER_BLOCK;
+	// int ret;
 
 	/* Lock the SPI bus and write all of the pages to FLASH */
 	w25n01_lock(priv->spi);
 
-	w25n01_page_write(priv, buffer,
-					  startblock << W25N01_BLOCK2PAGE_SHIFT,
+	w25n01_page_write(priv, page, buffer,
 					  nblocks << W25N01_BLOCK2PAGE_SHIFT, true);
 	w25n01_unlock(priv->spi);
 
@@ -1835,7 +1834,7 @@ static ssize_t w25n01_write(FAR struct mtd_dev_s *dev, off_t offset,
 	int index;
 	int bytestowrite;
 
-	finfo("offset: %08lx nbytes: %lu\n", (long)offset, (int)nbytes);
+	finfo("offset: %08lx nbytes: %u\n", (long)offset, (int)nbytes);
 
 	/* We must test if the offset + count crosses one or more pages
 	* and perform individual writes.  The devices can only write in
