@@ -60,6 +60,7 @@
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/clock.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -312,7 +313,7 @@ struct w25n01_dev_s
 {
 	struct mtd_dev_s      	mtd;         /* MTD interface */
 	FAR struct spi_dev_s 	*spi;         /* Saved SPI interface instance */
-	uint16_t devid;            /* SPI device ID to manage CS lines in board */
+	uint32_t devid;            /* SPI device ID to manage CS lines in board */
 	struct w25n01_geometry_s 	geom;         /* Geometry of the flash */
 	struct w25n01_bbm_entry_s 	bbm[W25N01_BBM_MAX_ENTRIES]; /* Bad block table */
 	uint8_t *bbm_table;     /* Another Bad block management table */
@@ -503,8 +504,8 @@ static inline void w25n01_unlock(FAR struct spi_dev_s *spi)
  ****************************************************************************/
 static void w25n01_select(FAR struct w25n01_dev_s *priv)
 {
-	SPI_LOCK(spi, true);
-	SPI_SELECT(spi, SPIDEV_FLASH(priv->devid), true);
+	SPI_LOCK(priv->spi, true);
+	SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->devid), true);
 }
 
 /****************************************************************************
@@ -512,8 +513,8 @@ static void w25n01_select(FAR struct w25n01_dev_s *priv)
  ****************************************************************************/
 static void w25n01_deselect(FAR struct w25n01_dev_s *priv)
 {
-	SPI_SELECT(spi, SPIDEV_FLASH(priv->devid), false);
-	SPI_LOCK(spi, false);
+	SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->devid), false);
+	SPI_LOCK(priv->spi, false);
 }
 
 /****************************************************************************
@@ -544,10 +545,9 @@ static uint8_t w25n01_waitwritecomplete(FAR struct w25n01_dev_s *priv)
 static int w25n01_wait_ready(FAR struct w25n01_dev_s *priv,
 							uint32_t timeout_ms)
 {
-	uint32_t starttime;
+	uint32_t starttime = clock_systime_ticks();
 	uint8_t status;
 	/* Get the start time */
-	starttime = clock_systimer();
 	/* Loop until the device is ready or until we time out */
 	do
 	{
@@ -561,7 +561,7 @@ static int w25n01_wait_ready(FAR struct w25n01_dev_s *priv,
 		up_mdelay(100); // wait 100 milliseconds
 		/* Check for timeout */
 	}
-	while (clock_systimer() - starttime < timeout_ms);
+	while (clock_systime_ticks() - starttime < timeout_ms);
 	/* Timed out */
 	ferr("ERROR: Timeout waiting for ready\n");
 	return -ETIMEDOUT;
@@ -582,7 +582,7 @@ static void w25n01_reset(FAR struct w25n01_dev_s *priv)
 	/* Send the "Device Reset" command */
 	SPI_SEND(priv->spi, W25N01_DEVICE_RESET);
 	/* Deselect the FLASH and unlock the bus */
-	w25n01_deselect(priv->spi);
+	w25n01_deselect(priv);
 	/* Wait 500 us for the flash to complete the reset */
 	nxsig_usleep(W25N01_TIMEOUT_RESET_US);
 
@@ -617,7 +617,7 @@ static inline int w25n01_readid(FAR struct w25n01_dev_s *priv)
 	SPI_RECVBLOCK(priv->spi, id, 3);
 
 	/* Deselect the FLASH and unlock the bus */
-	w25n01_deselect(priv->spi);
+	w25n01_deselect(priv);
 
 	finfo("Manufacturer: %02x Memory: %02x Capacity: %02x\n",
 		  id[0], id[1], id[2]);
@@ -713,7 +713,7 @@ static void w25n01_unprotect(FAR struct w25n01_dev_s *priv)
 	SPI_SEND(priv->spi, W25N01_WRITE_ENABLE);
 
 	/* Deselect the FLASH and unlock the bus */
-	w25n01_deselect(priv->spi);
+	w25n01_deselect(priv);
 }
 #endif
 
@@ -1606,16 +1606,7 @@ static int w25n01_page_write(FAR struct w25n01_dev_s *priv, uint16_t page,
 	/* Load data into buffer */
 	/* Send "Program Data Load" command p. 25/36 */
 	// SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->devid), true);
-	if (random)
-	{
-		// SPI_SEND(priv->spi, W25N01_RAND_PROGRAM_DATA_LOAD);
-		w25n01_rand_program_data_load(priv, column_addr, data, datalen);
-	}
-	else
-	{
-		// SPI_SEND(priv->spi, W25N01_PROGRAM_DATA_LOAD);
-		w25n01_program_data_load(priv, column_addr, data, datalen, true);
-	}
+	w25n01_program_data_load(priv, column_addr, data, datalen, random);
 
 	/* Send "Program Execute" command p. 38 */
 	w25n01_program_execute(priv, page);
@@ -1887,7 +1878,7 @@ static ssize_t w25n01_write(FAR struct mtd_dev_s *dev, off_t offset,
 		}
 	}
 
-	w25n1_unlock(priv->spi);
+	w25n01_unlock(priv->spi);
 	return nbytes;
 }
 #endif /* defined(CONFIG_MTD_BYTE_WRITE) && !defined(CONFIG_W25_READONLY) */
@@ -1991,12 +1982,12 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
-                                      uint16_t spi_devid)
+                                      uint32_t spi_devid)
 {
 	FAR struct w25n01_dev_s *priv;
 	int ret;
 
-	finfo("spi: %p spi_devid: %lu\n", spi, (unsigned long)spi_devid);
+	finfo("spi: %p spi_devid: %lu\n", dev, (unsigned long)spi_devid);
 
 	/* Allocate a state structure (we allocate the structure instead of using
 	* a fixed, static allocation so that we can handle multiple FLASH devices.
@@ -2014,7 +2005,7 @@ FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
 
 	/* Initialize device structure */
 	priv->mtd.name			= "w25n01";
-	priv->spi				= spi;
+	priv->spi				= dev;
 	priv->devid				= spi_devid;
 	priv->geom.pageshift	= W25N01_PAGE_SHIFT;  /* 2048 = 2^11 */
 	priv->geom.blockshift	= W25N01_BLOCK_SHIFT; /* 128KB = 2^17 (64 pages * 2048 bytes) */

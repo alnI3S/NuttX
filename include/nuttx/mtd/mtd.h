@@ -534,7 +534,7 @@ FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
  FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
-                                           uint16_t spi_devid);
+                                           uint32_t spi_devid);
 
 /****************************************************************************
  * Name: w25n01gv_initialize
