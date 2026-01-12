@@ -710,14 +710,16 @@ config W25N01_SPIMODE
     default 0
     ---help---
         This device can operate in SPI mode 0 or 3.
+
 config W25N01_SPI_FREQUENCY
     int "W25N01 SPI Frequency"
-    default 96000000
+    default 20000000
     ---help---
-        Set the SPI clock frequency for W25N01 accesses to 96 MHz.
+        Set the SPI clock frequency for W25N01 accesses to 20 MHz.
         Max frequency is 104 MHz (datasheet) but never set SPI frequency higher
         than the SPI kernel clock source. In board.h configuration for SPI123
         clocking (i.e. PLL2P = 96 MHz).
+
 config W25N01_READONLY
     bool "W25N01 Read-Only"
     default n
@@ -1235,5 +1237,27 @@ config GD5F_SPIFREQUENCY
 	default 20000000
 
 endif # MTD_GD5F
+
+config MTD_W25N
+	bool "SPI-based W25N NAND FLASH"
+	default n
+	select SPI
+	---help---
+		Enable support for Winbond W25N SPI NAND flash.
+		Currently only W25N01GV (1Gbit/128MB) is supported.
+
+if MTD_W25N
+
+config W25N_SPIMODE
+	int "W25N SPI Mode"
+	default 0
+
+config W25N_SPIFREQUENCY
+	int "W25N SPI Frequency"
+	default 20000000
+	---help---
+		W25N01GV supports up to 104 MHz.
+
+endif # MTD_W25N
 
 endif # MTD

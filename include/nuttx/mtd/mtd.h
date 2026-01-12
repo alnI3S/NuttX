@@ -549,6 +549,17 @@ FAR struct mtd_dev_s *w25n01gv_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
 /****************************************************************************
+ * Name: w25n_initialize
+ *
+ * Description:
+ *   Initializes the driver for SPI-based W25N NAND FLASH
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *w25n_initialize(FAR struct spi_dev_s *dev,
+                                      uint32_t spi_devid);
+
+/****************************************************************************
  * Name: gd25_initialize
  *
  * Description:
