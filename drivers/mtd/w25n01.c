@@ -314,6 +314,7 @@ struct w25n01_dev_s
 	struct mtd_dev_s      	mtd;         /* MTD interface */
 	FAR struct spi_dev_s 	*spi;         /* Saved SPI interface instance */
 	uint16_t devid;            /* SPI device ID to manage CS lines in board */
+	uint32_t speed;                          /* Overridable via ioctl */
 	struct w25n01_geometry_s 	geom;         /* Geometry of the flash */
 	struct w25n01_bbm_entry_s 	bbm[W25N01_BBM_MAX_ENTRIES]; /* Bad block table */
 	uint8_t *bbm_table;     /* Another Bad block management table */
@@ -1985,6 +1986,7 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 		}
 		break;
 
+
 		case BIOC_PARTINFO:
 		{
 			FAR struct partition_info_s *info =
@@ -2010,6 +2012,16 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 			w25n01_unlock(priv->spi);
 		}
 		break;
+
+#ifdef CONFIG_W25N01_SPIFREQUENCY
+		case MTDIOC_SETSPEED:
+		{
+			priv->speed = arg;
+			finfo("set bus speed to %lu\n", priv->speed);
+			ret = OK;
+		}
+		break;
+#endif
 
 		case MTDIOC_ERASESTATE:
 		{
