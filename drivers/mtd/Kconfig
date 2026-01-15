@@ -683,51 +683,6 @@ config W25QXXXJV_SECTOR512
 
 endif # MTD_W25QXXXJV
 
-config MTD_W25N01
-	bool "Winbond W25N01 Nand FLASH in standard SPI support"
-	default n
-	select SPI
-	---help---
-		Enable support for the Winbond W25N01 1Gb NAND flash memory in
-		standard SPI mode.
-
-		This driver provides:
-		- Full read/write/erase operations
-		- Bad block management
-		- hardware ECC support by default
-		- SPI interface support only
-
-		The W25N01 is a 1Gb NAND flash organized as:
-		- 2048 blocks
-		- 64 pages per block
-		- 2048 bytes per page
-		- 64 bytes Spare per page
-
-if MTD_W25N01
-
-config W25N01_SPIMODE
-    int "W25N01 SPI Mode"
-    default 0
-    ---help---
-        This device can operate in SPI mode 0 or 3.
-
-config W25N01_SPI_FREQUENCY
-    int "W25N01 SPI Frequency"
-    default 20000000
-    ---help---
-        Set the SPI clock frequency for W25N01 accesses to 20 MHz.
-        Max frequency is 104 MHz (datasheet) but never set SPI frequency higher
-        than the SPI kernel clock source. In board.h configuration for SPI123
-        clocking (i.e. PLL2P = 96 MHz).
-
-config W25N01_READONLY
-    bool "W25N01 Read-Only"
-    default n
-    ---help---
-        Build the driver in read-only mode. Write and erase operations will
-        return errors.
-
-endif # MTD_W25N01
 
 config MTD_W25N01GV
     bool "QuadSPI-based Winbond W25N01GV Nand FLASH"
@@ -1259,5 +1214,53 @@ config W25N_SPIFREQUENCY
 		W25N01GV supports up to 104 MHz.
 
 endif # MTD_W25N
+
+config MTD_W25N01
+	bool "SPI-based Winbond W25N01 Nand FLASH"
+	default n
+	select SPI
+	---help---
+		Enable support for the Winbond W25N01 1Gb NAND flash memory in
+		standard SPI mode.
+
+		This driver provides:
+		- Full read/write/erase operations
+		- Bad block management
+		- hardware ECC support by default
+		- SPI interface support only
+
+		The W25N01 is a 1Gb NAND flash organized as:
+		- 2048 blocks
+		- 64 pages per block
+		- 2048 bytes per page
+		- 64 bytes Spare per page
+
+if MTD_W25N01
+
+config W25N01_SPIMODE
+    int "W25N01 SPI Mode"
+    default 0
+    ---help---
+        This device can operate in SPI mode 0 or 3.
+
+config W25N01_SPIFREQUENCY
+    int "W25N01 SPI Frequency"
+    default 30000000
+    ---help---
+        Set the SPI clock frequency for W25N01 accesses to 30 MHz.
+		WIP: The maximum tested on Kakute H7 Mini v1.3 is 47.9 MHz. It seems
+		to be SPI4,5 clocked at 48 MHz (PLL2Q).
+        Max frequency is 104 MHz (datasheet) but never set SPI frequency higher
+        than the SPI kernel clock source. In board.h configuration for SPI1,2,3
+        clocking (i.e. PLL2P = 96 MHz).
+
+config W25N01_READONLY
+    bool "W25N01 Read-Only"
+    default n
+    ---help---
+        Build the driver in read-only mode. Write and erase operations will
+        return errors.
+
+endif # MTD_W25N01
 
 endif # MTD

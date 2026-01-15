@@ -95,7 +95,7 @@
  */
 
 #ifndef CONFIG_W25N01_SPIFREQUENCY
-#  define CONFIG_W25N01_SPIFREQUENCY 20000000
+#  define CONFIG_W25N01_SPIFREQUENCY 30000000
 #endif
 
 #define W25N01_DEFAULT_TIMEOUT_MS         5000  // wait ready timeout
@@ -312,20 +312,21 @@ struct w25n01_bbm_s {
 struct w25n01_dev_s
 {
 	struct mtd_dev_s      	mtd;         /* MTD interface */
-	FAR struct spi_dev_s 	*spi;         /* Saved SPI interface instance */
-	uint16_t devid;            /* SPI device ID to manage CS lines in board */
-	uint32_t speed;                          /* Overridable via ioctl */
-	struct w25n01_geometry_s 	geom;         /* Geometry of the flash */
+	FAR struct spi_dev_s 	*spi;        /* Saved SPI interface instance */
+	uint16_t 				devid;       /* SPI device ID to manage CS lines in board */
+	uint32_t 				speed;       /* Overridable via ioctl */
+	struct w25n01_geometry_s 	geom;    /* Geometry of the flash */
 	struct w25n01_bbm_entry_s 	bbm[W25N01_BBM_MAX_ENTRIES]; /* Bad block table */
-	uint8_t *bbm_table;     /* Another Bad block management table */
-	int 					bb_count;   /* Number of bad blocks */
-	uint16_t nbadblocks;            /* Another Number of bad blocks found */
+	uint8_t 				*bbm_table;  /* Another Bad block management table */
+	// uint16_t 				bb_count;    /* Number of bad blocks */
+	uint16_t 				nbadblocks;            /* Another Number of bad blocks found */
 	uint16_t               	nsectors;    /* Number of erase sectors */
 	uint8_t                	protectmask; /* Mask for protect bits in status register */
 	uint8_t                	tbmask;      /* Mask for top/bottom bit in status register */
-	FAR uint8_t           	*cmdbuf;      /* Allocated command buffer */
-	FAR uint8_t           	*readbuf;     /* Allocated status read buffer */
-	uint8_t               	prev_instr;  /* Previous instruction given to W25 device */
+	FAR uint8_t           	*cmdbuf;     /* Allocated command buffer */
+	FAR uint8_t           	*readbuf;    /* Allocated status read buffer */
+	// uint8_t               	prev_instr;  /* Previous instruction given to W25 device */
+	// uint8_t					id[3];       /* Manufacturer and device ID */
 	bool 					initialized;
 };
 
@@ -776,7 +777,7 @@ static void w25n01_unprotect(FAR struct w25n01_dev_s *priv)
  * - bm[i] = { bad_block = LBAi, good_block = PBAi }
  * If invalid link (LBA[15:14] = 11) you must avoid the LBA (lba & 0x03FF)
  *
- * The command also updates priv->bb_count with the number of bad blocks found.
+ * The command also updates priv->nbadblocks with the number of bad blocks found.
  *
  ****************************************************************************/
 static int w25n01_read_bbm_lut(FAR struct w25n01_dev_s *priv)
@@ -784,7 +785,7 @@ static int w25n01_read_bbm_lut(FAR struct w25n01_dev_s *priv)
 	uint8_t lut_entry[W25N01_BBM_MAX_ENTRIES * 4];	/* 4 bytes per entry */
 	uint16_t lba, pba;
 	/* Clear current list */
-	priv->bb_count = 0;
+	priv->nbadblocks = 0;
 	memset(priv->bbm, 0, sizeof(priv->bbm));
 
 
@@ -820,7 +821,7 @@ static int w25n01_read_bbm_lut(FAR struct w25n01_dev_s *priv)
 
 		if (link_status > 1) // bits[15:14] = 10 or 11
 		{
-			priv->bb_count++;
+			priv->nbadblocks++;
 		}
 	}
 
@@ -1392,6 +1393,61 @@ static int w25n01_scan_bad_blocks(FAR struct w25n01_dev_s *priv)
 	finfo("Found %u bad blocks out of %u total blocks\n",
 		bad_count, W25N01_BLOCKS);
 
+	// priv->nbadblocks = 0;		// reset bad block count
+
+	// finfo("Scanning for bad blocks...\n");
+
+	// /* Allocate bad block table if not already allocated */
+	// // TODO replace with w25n01_bbm_s */
+	// if (!priv->bbm_table)
+	// {
+	// 	priv->bbm_table = (uint8_t *)kmm_zalloc(W25N01_BLOCKS);
+	// 	if (!priv->bbm_table)
+	// 	{
+	// 		ferr("ERROR: Failed to allocate BBM table\n");
+	// 		return -ENOMEM;
+	// 	}
+	// }
+
+	// /* Scan all blocks */
+	// for (block = 0; block < W25N01_BLOCKS; block++)
+	// {
+	// 	/* Read Page 0 Column 0 */
+	// 	uint16_t page = block * W25N01_PAGES_PER_BLOCK;
+
+	// 	ret = w25n01_page_read(priv, page, 0, &marker, 1, 0);
+	// 	if (ret < 0)
+	// 	{
+	// 		/* Read error, mark as bad */
+	// 		priv->bbm_table[block] = W25N01_FACTORY_BAD_BLOCK;
+	// 		priv->nbadblocks++;
+	// 		finfo("Block %ld marked bad (read error)\n", (long)block);
+	// 		continue;
+	// 	}
+
+	// 	/* Check for factory bad block marker */
+	// 	if (marker == W25N01_FACTORY_BAD_BLOCK)
+	// 	{
+	// 		priv->bbm_table[block] = W25N01_FACTORY_BAD_BLOCK;
+	// 		priv->nbadblocks++;
+	// 		finfo("Block %ld is factory marked bad\n", (long)block);
+	// 	}
+	// 	else
+	// 	{
+	// 		priv->bbm_table[block] = W25N01_BAD_BLOCK_MARKER; // good block!
+	// 	}
+	// }
+
+	// if (priv->nbadblocks > W25N01_BBM_MAX_ENTRIES)
+	// {
+	// 	ferr("ERROR: Too many bad blocks: %u (max %u)\n. Check BBM LUT!!!\n",
+	// 		priv->nbadblocks, W25N01_BBM_MAX_ENTRIES);
+	// 	return -EIO;
+	// }
+
+	// finfo("Found %u bad blocks out of %u total blocks\n",
+	// 	priv->nbadblocks, W25N01_BLOCKS);
+
 	return OK;
 }
 
@@ -1961,7 +2017,7 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 		case MTDIOC_GEOMETRY:
 		{
 			FAR struct mtd_geometry_s *geo =
-			(FAR struct mtd_geometry_s *)((uintptr_t)arg);
+				(FAR struct mtd_geometry_s *)((uintptr_t)arg);
 			if (geo)
 			{
 				/* Populate the geometry structure with information need to
@@ -1977,6 +2033,7 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 				geo->blocksize    = W25N01_PAGE_SIZE;	/* smallest r/w unit */
 				geo->erasesize    = W25N01_BLOCK_SIZE; /* smallest erassable unit */
 				geo->neraseblocks = priv->nsectors;
+				geo->nbadblocks  = priv->nbadblocks;
 				ret               = OK;
 
 				finfo("blocksize: %" PRIu32 " erasesize: %" PRIu32
@@ -2012,16 +2069,6 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 			w25n01_unlock(priv->spi);
 		}
 		break;
-
-#ifdef CONFIG_W25N01_SPIFREQUENCY
-		case MTDIOC_SETSPEED:
-		{
-			priv->speed = arg;
-			finfo("set bus speed to %lu\n", priv->speed);
-			ret = OK;
-		}
-		break;
-#endif
 
 		case MTDIOC_ERASESTATE:
 		{
@@ -2145,7 +2192,6 @@ FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
 		return NULL;
 	}
 
-
 	w25n01_unlock(priv->spi);
 
 	priv->initialized = true;
@@ -2154,7 +2200,7 @@ FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
 
 	finfo("W25N01 initialized successfully\n");
 	finfo("Total blocks: %u, Bad blocks: %u\n",
-		W25N01_BLOCKS, priv->bb_count);
+		W25N01_BLOCKS, priv->nbadblocks);
 
 	// UNUSED(ret);
 	return &priv->mtd;
