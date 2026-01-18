@@ -283,16 +283,16 @@
 *   [2048B data + 64B spare]
 *
 */
-struct w25n01_geometry_s {
-	uint32_t page_size_bytes;       // 2048 (data) + 64 (spare)
-	uint32_t spare_size_bytes;      // 64
-	uint32_t block_size;            // 64 pages per block
-	uint32_t block_size_bytes;      // 131072 (64*2048)
-	uint16_t total_blocks;          // 1024
-	uint8_t blockshift;             /* Log2 of block size */
-	uint8_t pageshift;              /* Log2 of page size */
-	uint8_t block2pageshift; 		/* log2(pages per block) */
-};
+// struct w25n01_geometry_s {
+// 	uint32_t page_size_bytes;       // 2048 (data) + 64 (spare)
+// 	uint32_t spare_size_bytes;      // 64
+// 	uint32_t block_size;            // 64 pages per block
+// 	uint32_t block_size_bytes;      // 131072 (64*2048)
+// 	uint16_t total_blocks;          // 1024
+// 	uint8_t blockshift;             /* Log2 of block size */
+// 	uint8_t pageshift;              /* Log2 of page size */
+// 	uint8_t block2pageshift; 		/* log2(pages per block) */
+// };
 
 struct w25n01_bbm_entry_s {
 	uint16_t bad_block;   /* original bad block */
@@ -315,7 +315,7 @@ struct w25n01_dev_s
 	FAR struct spi_dev_s 	*spi;        /* Saved SPI interface instance */
 	uint16_t 				devid;       /* SPI device ID to manage CS lines in board */
 	uint32_t 				speed;       /* Overridable via ioctl */
-	struct w25n01_geometry_s 	geom;    /* Geometry of the flash */
+	// struct w25n01_geometry_s 	geom;    /* Geometry of the flash */
 	struct w25n01_bbm_entry_s 	bbm[W25N01_BBM_MAX_ENTRIES]; /* Bad block table */
 	uint8_t 				*bbm_table;  /* Another Bad block management table */
 	// uint16_t 				bb_count;    /* Number of bad blocks */
@@ -637,19 +637,19 @@ static inline int w25n01_readid(FAR struct w25n01_dev_s *priv)
 		ferr("ERROR: Unexpected manufacturer ID: 0x%02x\n", id[0]);
 		return -ENODEV;
 	}
-	if (id[1] == W25N01_MEMORY_TYPE && id[2] == W25N01_DEVID)
+	if ((id[1] != W25N01_MEMORY_TYPE ) || (id[2] != W25N01_DEVID))
 	{
-		priv->geom.blockshift = W25N01_BLOCK_SHIFT;
-		priv->geom.pageshift = W25N01_PAGE_SHIFT;
-		priv->geom.block2pageshift = W25N01_BLOCK2PAGE_SHIFT;
-		priv->geom.page_size_bytes = W25N01_PAGE_SIZE;
-		priv->geom.spare_size_bytes = W25N01_SPARE_SIZE;
-		priv->geom.block_size = W25N01_PAGES_PER_BLOCK;
-		priv->geom.block_size_bytes = W25N01_BLOCK_SIZE;
-		priv->geom.total_blocks = W25N01_BLOCKS;
-		priv->nsectors = W25N01_BLOCKS;
-	}
-	else {
+		// priv->geom.blockshift = W25N01_BLOCK_SHIFT;
+		// priv->geom.pageshift = W25N01_PAGE_SHIFT;
+		// priv->geom.block2pageshift = W25N01_BLOCK2PAGE_SHIFT;
+		// priv->geom.page_size_bytes = W25N01_PAGE_SIZE;
+		// priv->geom.spare_size_bytes = W25N01_SPARE_SIZE;
+		// priv->geom.block_size = W25N01_PAGES_PER_BLOCK;
+		// priv->geom.block_size_bytes = W25N01_BLOCK_SIZE;
+		// priv->geom.total_blocks = W25N01_BLOCKS;
+		// priv->nsectors = W25N01_BLOCKS;
+	// }
+	// else {
 		/* We don't understand the manufacturer or the memory type */
 		ferr("ERROR: Unrecognized manufacturer/memory type: %02x/%02x\n",
 		id[0], id[1]);
@@ -1337,7 +1337,7 @@ static int w25n01_scan_bad_blocks(FAR struct w25n01_dev_s *priv)
 	uint8_t marker; // first byte of Page 0 Column 0
 	uint16_t block;
 	int ret;
-	uint8_t bad_count = 0; // TODO replaced by dev->bb_count
+	uint8_t bad_count = 0; // TODO replaced by dev->nbadblocks
 
 	finfo("Scanning for bad blocks...\n");
 
@@ -2032,8 +2032,8 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 
 				geo->blocksize    = W25N01_PAGE_SIZE;	/* smallest r/w unit */
 				geo->erasesize    = W25N01_BLOCK_SIZE; /* smallest erassable unit */
-				geo->neraseblocks = priv->nsectors;
-				geo->nbadblocks  = priv->nbadblocks;
+				geo->neraseblocks = W25N01_BLOCKS;
+				geo->nbadblocks  = priv->nbadblocks * W25N01_PAGES_PER_BLOCK;
 				ret               = OK;
 
 				finfo("blocksize: %" PRIu32 " erasesize: %" PRIu32
@@ -2050,8 +2050,7 @@ static int w25n01_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 			(FAR struct partition_info_s *)arg;
 			if (info != NULL)
 			{
-				info->numsectors  = priv->nsectors *
-									W25N01_BLOCK_SIZE / W25N01_PAGE_SIZE;
+				info->numsectors  = W25N01_BLOCKS * W25N01_PAGES_PER_BLOCK;
 				info->sectorsize  = W25N01_PAGE_SIZE;
 				info->startsector = 0;
 				info->parent[0]   = '\0';
