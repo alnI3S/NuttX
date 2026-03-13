@@ -1211,7 +1211,7 @@ static void w25n01_read_data(FAR struct w25n01_dev_s *priv, uint16_t column_addr
 	SPI_SEND(priv->spi, W25N01_DUMMY);
 
 	/* read out data */
-	// SPI_RECVBLOCK(priv->spi, &buffer, nbytes);
+	SPI_RECVBLOCK(priv->spi, &buffer, nbytes);
 
 
 	/* complete the instruction */
@@ -1251,7 +1251,7 @@ static void w25n01_fast_read(FAR struct w25n01_dev_s *priv, uint16_t column_addr
 	SPI_SEND(priv->spi, W25N01_DUMMY);
 
 	/* read out data */
-	// SPI_RECVBLOCK(priv->spi, &buffer, nbytes);
+	SPI_RECVBLOCK(priv->spi, &buffer, nbytes);
 	for (size_t i = 0; i < nbytes; i++)
 	{
 		buffer[i] = (uint8_t)SPI_SEND(priv->spi, W25N01_DUMMY);
@@ -1295,7 +1295,7 @@ static void w25n01_fast_read_4b(FAR struct w25n01_dev_s *priv, uint16_t column_a
 	SPI_SEND(priv->spi, W25N01_DUMMY);
 
 	/* read out data */
-	// SPI_RECVBLOCK(priv->spi, &buffer, nbytes);
+	SPI_RECVBLOCK(priv->spi, &buffer, nbytes);
 	for (size_t i = 0; i < nbytes; i++)
 	{
 		buffer[i] = (uint8_t)SPI_SEND(priv->spi, W25N01_DUMMY);
@@ -2183,9 +2183,9 @@ FAR struct mtd_dev_s *w25n01_initialize(FAR struct spi_dev_s *dev,
 	{
 		ferr("ERROR: Failed to scan bad blocks\n");
 		w25n01_unlock(priv->spi);
-		if (priv->bbm)
+		if (priv->bbm_table)
 		{
-			kmm_free(priv->bbm);
+			kmm_free(priv->bbm_table);
 		}
 		kmm_free(priv);
 		return NULL;
